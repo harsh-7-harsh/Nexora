@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NEXORA — Editing Learning Dashboard</title>
+<meta name="description" content="NEXORA frontend dashboard for learning video editing, tracking tasks, notes, focus time, achievements and projects." />
+<style>
+  :root{
+    --bg:#070b16;
+    --panel:#0d1324;
+    --panel-2:#11192c;
+    --panel-3:#151f37;
+    --line:rgba(255,255,255,.08);
+    --muted:#8e99b5;
+    --text:#f7f8ff;
+    --primary:#8556ff;
+    --primary-2:#5f39e8;
+    --cyan:#32d9ef;
+    --green:#49df9a;
+    --yellow:#ffcb59;
+    --red:#ff6f91;
+    --shadow:0 24px 70px rgba(0,0,0,.34);
+    --radius:22px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:
+    radial-gradient(1000px 600px at 83% -5%, rgba(124,71,255,.22), transparent 58%),
+    radial-gradient(700px 500px at -10% 10%, rgba(18,194,219,.11), transparent 60%),
+    var(--bg); color:var(--text); font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
+  button,input,textarea,select{font:inherit}
+  button{cursor:pointer}
+  .app{display:flex;min-height:100vh}
+  .sidebar{width:255px;position:sticky;top:0;height:100vh;padding:22px 16px;display:flex;flex-direction:column;gap:18px;border-right:1px solid var(--line);background:rgba(7,11,22,.78);backdrop-filter:blur(24px);z-index:30}
+  .brand{display:flex;align-items:center;gap:10px;padding:5px 10px 13px;font-weight:900;letter-spacing:.12em;font-size:19px}
+  .logo{width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,var(--primary),#28d9ec);box-shadow:0 10px 28px rgba(116,65,255,.4);display:grid;place-items:center;font-size:17px}
+  .brand span{background:linear-gradient(90deg,#fff 42%,#30d8ef);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .section-label{font-size:11px;text-transform:uppercase;letter-spacing:.15em;color:#6f7a98;padding:0 10px;margin:6px 0 2px}
+  .nav{display:flex;flex-direction:column;gap:4px}
+  .nav button{border:0;color:#98a2bd;background:transparent;padding:11px 12px;border-radius:14px;display:flex;align-items:center;gap:12px;text-align:left;transition:.2s;}
+  .nav button:hover{background:rgba(255,255,255,.05);color:#fff;transform:translateX(2px)}
+  .nav button.active{color:#fff;background:linear-gradient(135deg,rgba(133,86,255,.24),rgba(50,217,239,.07));box-shadow:inset 0 0 0 1px rgba(133,86,255,.18)}
+  .ico{width:22px;text-align:center;font-size:15px}
+  .sidebar-spacer{flex:1}
+  .mini-goal{padding:14px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(135deg,rgba(133,86,255,.12),rgba(50,217,239,.05))}
+  .mini-goal small{display:block;color:var(--muted);margin-bottom:7px}
+  .goal-num{font-weight:800;font-size:19px}
+  .progress{height:7px;background:#1a2338;border-radius:50px;overflow:hidden;margin:12px 0 7px}
+  .bar{height:100%;border-radius:50px;background:linear-gradient(90deg,var(--primary),var(--cyan));}
+  .mini-goal footer{display:flex;justify-content:space-between;color:#77839f;font-size:11px}
+  .main{flex:1;min-width:0}
+  .topbar{height:76px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:0 28px;position:sticky;top:0;z-index:20;background:rgba(7,11,22,.7);backdrop-filter:blur(20px)}
+  .mobile-menu{display:none}
+  .crumb{color:#7f8aa6;font-size:13px}.crumb b{color:#fff}
+  .top-actions{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .search{min-width:230px;background:#0d1426;border:1px solid var(--line);border-radius:13px;color:#a9b2c8;padding:10px 12px;outline:none}
+  .search:focus{border-color:rgba(133,86,255,.6);box-shadow:0 0 0 3px rgba(133,86,255,.1)}
+  .icon-btn{border:1px solid var(--line);background:#0c1324;color:#bac3d7;border-radius:13px;width:41px;height:41px;display:grid;place-items:center}
+  .avatar{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:800;background:linear-gradient(135deg,#7a4fff,#1dd0dd);box-shadow:0 10px 28px rgba(91,62,238,.28)}
+  .content{padding:28px;max-width:1600px;margin:0 auto}
+  .view{display:none}.view.active{display:block}
+  .hero{display:grid;grid-template-columns:1.5fr .8fr;gap:18px;align-items:stretch;margin-bottom:20px}
+  .hero-card,.panel,.metric{background:linear-gradient(145deg,rgba(18,27,48,.94),rgba(10,15,30,.95));border:1px solid var(--line);box-shadow:var(--shadow);border-radius:var(--radius)}
+  .hero-card{padding:30px;position:relative;overflow:hidden;min-height:250px}
+  .hero-card:before{content:"";position:absolute;width:310px;height:310px;border-radius:50%;right:-100px;top:-140px;background:radial-gradient(circle,rgba(133,86,255,.34),transparent 62%)}
+  .eyebrow{display:inline-flex;align-items:center;gap:7px;color:#abb5d0;font-size:11px;text-transform:uppercase;letter-spacing:.14em}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 14px var(--green)}
+  h1{font-size:clamp(34px,4vw,54px);line-height:.99;margin:14px 0 12px;max-width:760px;letter-spacing:-.045em}
+  .hero-card p{color:#9aa5c0;line-height:1.65;max-width:690px;margin:0 0 20px}
+  .cta-row{display:flex;gap:10px;flex-wrap:wrap}
+  .btn{border:1px solid transparent;border-radius:13px;padding:11px 16px;font-weight:750;transition:.2s}
+  .btn.primary{color:#fff;background:linear-gradient(135deg,var(--primary),var(--primary-2));box-shadow:0 13px 28px rgba(112,57,234,.26)}
+  .btn.primary:hover{transform:translateY(-1px);box-shadow:0 16px 34px rgba(112,57,234,.36)}
+  .btn.ghost{background:#121a2d;color:#c7cee0;border-color:var(--line)}
+  .btn.ghost:hover{background:#18223b;color:#fff}
+  .level-card{padding:23px;display:flex;flex-direction:column;justify-content:space-between}
+  .level-top{display:flex;justify-content:space-between;color:#9ca8c2;font-size:12px}.level-badge{color:#eae7ff;background:rgba(133,86,255,.15);border:1px solid rgba(133,86,255,.28);padding:5px 8px;border-radius:50px}
+  .level-title{font-weight:850;font-size:27px;margin-top:18px}.level-sub{color:var(--muted);font-size:13px;margin-top:5px}
+  .xp{display:flex;align-items:center;justify-content:space-between;margin-top:19px;color:#b4bdd2;font-size:12px}
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+  .metric{padding:18px 18px 17px;box-shadow:none}.metric small{color:#76819d}.metric-value{font-size:28px;font-weight:900;margin:7px 0 3px;letter-spacing:-.03em}.metric-tag{font-size:11px;color:#8c98b2}.up{color:var(--green)}
+  .grid-2{display:grid;grid-template-columns:1.25fr .75fr;gap:18px;margin-bottom:20px}.grid-3{display:grid;grid-template-columns:1.1fr .95fr .95fr;gap:18px;margin-bottom:20px}
+  .panel{padding:20px;box-shadow:none}
+  .panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}.panel-head h2{font-size:18px;margin:0}.panel-head p{font-size:12px;margin:4px 0 0;color:#75819b}.link{border:0;background:transparent;color:#8c6dff;font-size:12px;font-weight:750;padding:0}
+  .skill{display:grid;grid-template-columns:38px 1fr auto;gap:12px;align-items:center;padding:10px 0}.skill-icon{width:38px;height:38px;border-radius:12px;background:#171f34;display:grid;place-items:center}.skill-name{font-weight:700;font-size:13px}.skill-meta{color:#74809c;font-size:11px;margin-top:3px}.skill-pct{font-size:12px;color:#b8c0d4}.thin{height:6px;margin-top:8px}
+  .streak{display:flex;align-items:center;gap:14px;padding:15px;border-radius:17px;background:linear-gradient(135deg,rgba(133,86,255,.16),rgba(50,217,239,.06));border:1px solid rgba(133,86,255,.15)}
+  .flame{font-size:30px}.streak b{font-size:21px}.streak span{display:block;color:#8792ab;font-size:11px;margin-top:3px}
+  .task{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}.task:last-child{border-bottom:0}.check{width:19px;height:19px;border:1px solid #49536b;border-radius:6px;background:#0c1324;display:grid;place-items:center;color:#fff}.task.done .check{background:linear-gradient(135deg,var(--primary),#2dd4dd);border:0}.task.done .task-text{text-decoration:line-through;color:#657089}.task-text{font-weight:650;font-size:13px;flex:1}.task-due{font-size:10px;color:#78849f}.pill{font-size:10px;border:1px solid var(--line);padding:4px 7px;border-radius:999px;color:#9ba6be}.pill.purple{color:#b6a2ff;border-color:rgba(133,86,255,.25);background:rgba(133,86,255,.08)}.pill.green{color:#66e9ad;border-color:rgba(73,223,154,.22);background:rgba(73,223,154,.06)}
+  .timer{min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}.timer-ring{width:168px;height:168px;border-radius:50%;display:grid;place-items:center;position:relative;background:conic-gradient(var(--primary) var(--p,65%), #1b2339 0);box-shadow:0 0 42px rgba(117,70,240,.18)}.timer-ring:after{content:"";position:absolute;width:137px;height:137px;border-radius:50%;background:#0c1222;border:1px solid var(--line)}.time{position:relative;z-index:1;font-size:33px;font-weight:900;letter-spacing:-.04em}.timer-mode{color:#78849e;font-size:11px;margin-top:10px}.timer-actions{display:flex;gap:8px;margin-top:14px}.round-btn{border:1px solid var(--line);background:#121a2c;color:#dbe0ec;border-radius:11px;padding:8px 11px;font-size:11px}
+  .note{padding:15px;border:1px solid var(--line);border-radius:16px;background:#0d1424}.note-title{display:flex;justify-content:space-between;gap:8px;font-weight:760;font-size:13px}.note-body{color:#8792ab;font-size:12px;line-height:1.55;margin-top:8px}.note-time{color:#58637b;font-size:10px;margin-top:10px}
+  .chart{height:215px;position:relative;padding-top:8px}.bars{height:170px;display:flex;align-items:flex-end;gap:11px;padding:0 5px}.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px}.bar-stick{width:100%;max-width:28px;border-radius:8px 8px 4px 4px;background:linear-gradient(180deg,#8b5cff,#25d5e5);box-shadow:0 10px 25px rgba(102,69,239,.12)}.bar-day{font-size:10px;color:#65718b}.axis{position:absolute;left:0;right:0;top:50%;border-top:1px dashed rgba(255,255,255,.07)}
+  .calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}.day{aspect-ratio:1.1;border:1px solid var(--line);border-radius:10px;background:#0d1425;display:grid;place-items:center;color:#657089;font-size:10px}.day.head{border:0;background:transparent;color:#73809b}.day.active{color:#fff;border-color:rgba(133,86,255,.4);background:linear-gradient(135deg,rgba(133,86,255,.25),rgba(50,217,239,.07));font-weight:800}.day.today{box-shadow:inset 0 0 0 1px var(--cyan);color:#e9fbff}
+  .project{padding:0;overflow:hidden}.project-cover{height:105px;background:radial-gradient(circle at 70% 25%,rgba(50,217,239,.85),transparent 30%),linear-gradient(135deg,#221651,#09101e);position:relative}.project-cover.orange{background:radial-gradient(circle at 20% 20%,rgba(255,149,43,.85),transparent 32%),linear-gradient(135deg,#30160c,#0b101c)}.project-cover.pink{background:radial-gradient(circle at 30% 20%,rgba(253,89,170,.8),transparent 35%),linear-gradient(135deg,#341429,#0c1020)}.project-meta{padding:15px}.project-title{font-weight:800}.project-small{color:#78849d;font-size:11px;margin-top:4px}.project-foot{display:flex;justify-content:space-between;margin-top:13px;color:#8691aa;font-size:10px}
+  .achievement-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.badge{padding:16px;border:1px solid var(--line);border-radius:17px;text-align:left;background:linear-gradient(145deg,#0e1628,#0b1220);position:relative;overflow:hidden;transition:.22s ease}.badge:hover{transform:translateY(-2px);border-color:rgba(133,86,255,.32);box-shadow:0 15px 35px rgba(0,0,0,.2)}.badge.unlocked{border-color:rgba(133,86,255,.3);background:linear-gradient(145deg,rgba(133,86,255,.12),#0b1220)}.badge-icon{width:48px;height:48px;border-radius:15px;margin-bottom:11px;display:grid;place-items:center;font-size:23px;background:linear-gradient(135deg,rgba(133,86,255,.26),rgba(50,217,239,.12));border:1px solid rgba(255,255,255,.06)}.badge strong{display:block;font-size:12px}.badge span{font-size:10px;color:#75809a;display:block;margin-top:4px;line-height:1.45}.badge-progress{margin-top:11px}.badge-progress-top{display:flex;justify-content:space-between;gap:8px;color:#7f8aa5;font-size:9px;margin-bottom:5px}.badge-progress-track{height:5px;background:#1a2338;border-radius:50px;overflow:hidden}.badge-progress-bar{height:100%;border-radius:50px;background:linear-gradient(90deg,var(--primary),var(--cyan));width:0}.badge-status{position:absolute;top:13px;right:13px;font-size:9px;padding:4px 7px;border-radius:999px;color:#68738d;background:#121a2c;border:1px solid var(--line)}.badge.unlocked .badge-status{color:#66e9ad;background:rgba(73,223,154,.07);border-color:rgba(73,223,154,.2)}.locked{opacity:.62}.achievement-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}.achievement-stat{padding:13px 14px;border:1px solid var(--line);border-radius:15px;background:#0b1220}.achievement-stat small{display:block;color:#707c96;font-size:9px;letter-spacing:.08em}.achievement-stat b{display:block;font-size:19px;margin-top:5px}.achievement-stat span{display:block;color:#78849d;font-size:9px;margin-top:2px}@media(max-width:520px){.achievement-grid{grid-template-columns:1fr}.achievement-summary{grid-template-columns:1fr 1fr}.achievement-stat:last-child{grid-column:1/-1}}
+  .roadmap{display:grid;gap:11px}.road-row{display:grid;grid-template-columns:36px 1fr auto;gap:11px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:14px;background:#0c1323}.road-number{width:33px;height:33px;border-radius:11px;background:#182038;display:grid;place-items:center;font-size:12px;font-weight:800}.road-title{font-weight:700;font-size:12px}.road-sub{font-size:10px;color:#74809b;margin-top:4px}.road-status{font-size:9px;padding:5px 7px;border-radius:999px;background:rgba(73,223,154,.08);color:#66e7aa;border:1px solid rgba(73,223,154,.2)}
+  .table{width:100%;border-collapse:collapse;font-size:12px}.table th{text-align:left;color:#6e7a94;font-size:10px;text-transform:uppercase;letter-spacing:.1em;font-weight:700;padding:11px;border-bottom:1px solid var(--line)}.table td{padding:13px 11px;border-bottom:1px solid var(--line);color:#aeb7cb}.table tr:last-child td{border-bottom:0}.video-dot{width:9px;height:9px;border-radius:3px;background:#8a62ff;display:inline-block;margin-right:8px}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}.field label{font-size:11px;color:#7d89a3}.field input,.field textarea,.field select{background:#0a1120;color:#e7ebf5;border:1px solid var(--line);border-radius:12px;padding:11px 12px;outline:none}.field textarea{min-height:150px;resize:vertical}.field input:focus,.field textarea:focus,.field select:focus{border-color:rgba(133,86,255,.55);box-shadow:0 0 0 3px rgba(133,86,255,.08)}
+  .empty{color:#727e99;font-size:12px;padding:18px 0;text-align:center}
+  .modal{position:fixed;inset:0;background:rgba(1,4,10,.7);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:18px;z-index:100}.modal.show{display:flex}.modal-card{width:min(560px,100%);background:#0d1425;border:1px solid var(--line);border-radius:23px;padding:21px;box-shadow:0 35px 90px rgba(0,0,0,.55)}.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.modal-head h3{margin:0;font-size:19px}.close{border:0;background:#151e33;color:#9ca8c0;width:34px;height:34px;border-radius:10px}.toast{position:fixed;right:22px;bottom:22px;z-index:110;background:#131c30;border:1px solid var(--line);border-radius:14px;padding:12px 14px;color:#dde3f0;box-shadow:var(--shadow);opacity:0;transform:translateY(15px);pointer-events:none;transition:.25s;font-size:12px}.toast.show{opacity:1;transform:none}
+  .section-spacer{height:3px}
+  @media(max-width:1100px){.sidebar{width:220px}.hero{grid-template-columns:1fr}.grid-3{grid-template-columns:1fr 1fr}.grid-3 .panel:last-child{grid-column:1/-1}.search{min-width:160px}}
+  @media(max-width:840px){.sidebar{position:fixed;left:-280px;transition:.25s;width:255px;box-shadow:30px 0 80px rgba(0,0,0,.35)}.sidebar.open{left:0}.mobile-menu{display:grid;place-items:center}.topbar{padding:0 16px}.crumb{display:none}.content{padding:18px 16px}.metrics{grid-template-columns:1fr 1fr}.grid-2,.grid-3{grid-template-columns:1fr}.grid-3 .panel:last-child{grid-column:auto}.search{display:none}}
+  @media(max-width:520px){.top-actions{gap:7px}.avatar{width:38px;height:38px}.hero-card{padding:22px;min-height:unset}.level-card{padding:19px}.metrics{gap:9px}.metric{padding:14px}.metric-value{font-size:23px}.panel{padding:16px}.achievement-grid{grid-template-columns:repeat(2,1fr)}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.timer-ring{width:148px;height:148px}.timer-ring:after{width:121px;height:121px}.time{font-size:28px}}
+
+  .auth-state{font-size:11px;color:#8e99b5;max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .auth-state strong{color:#dbe2f3}
+  .auth-hint{font-size:11px;color:#7f8aa6;margin-top:8px;line-height:1.5}
+  .auth-toggle{border:0;background:transparent;color:#a987ff;padding:7px 0;font-size:12px}
+/* NEXORA Task Action Buttons */
+.task-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-left:auto;
+}
+
+.task-action{
+  width:34px;
+  height:34px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:10px;
+  background:rgba(255,255,255,.045);
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  transition:.2s ease;
+  color:#b9c7ff;
+}
+
+.task-action svg{
+  width:16px;
+  height:16px;
+  stroke:currentColor;
+  fill:none;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.task-action.edit:hover{
+  color:#ffffff;
+  border-color:rgba(150,120,255,.65);
+  background:rgba(130,100,255,.16);
+  box-shadow:0 0 18px rgba(130,100,255,.28);
+  transform:translateY(-1px);
+}
+
+.task-action.delete:hover{
+  color:#ff9da8;
+  border-color:rgba(255,90,110,.55);
+  background:rgba(255,70,90,.12);
+  box-shadow:0 0 18px rgba(255,70,90,.22);
+  transform:translateY(-1px);
+}
+/* NEXORA Edit Task Modal */
+.task-modal{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:rgba(4,6,15,.72);
+  backdrop-filter:blur(10px);
+}
+
+.task-modal.show{
+  display:flex;
+}
+
+.task-modal-box{
+  width:min(460px,100%);
+  padding:26px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:20px;
+  background:rgba(18,21,35,.96);
+  box-shadow:0 25px 80px rgba(0,0,0,.55);
+}
+
+.task-modal-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:22px;
+}
+
+.task-modal-head h3{
+  margin:0;
+  font-size:20px;
+}
+
+.task-modal-close{
+  width:34px;
+  height:34px;
+  border:0;
+  border-radius:10px;
+  background:rgba(255,255,255,.06);
+  color:#aaa;
+  cursor:pointer;
+  font-size:20px;
+}
+
+.task-modal-close:hover{
+  background:rgba(255,255,255,.12);
+  color:#fff;
+}
+
+.task-field{
+  margin-bottom:16px;
+}
+
+.task-field label{
+  display:block;
+  margin-bottom:7px;
+  font-size:12px;
+  color:#9298aa;
+}
+
+.task-field input,
+.task-field select{
+  width:100%;
+  box-sizing:border-box;
+  padding:12px 13px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:11px;
+  outline:none;
+  background:rgba(255,255,255,.045);
+  color:#fff;
+}
+
+.task-field input:focus,
+.task-field select:focus{
+  border-color:rgba(140,110,255,.65);
+  box-shadow:0 0 16px rgba(130,100,255,.12);
+}
+
+.task-modal-buttons{
+  display:flex;
+  gap:10px;
+  margin-top:22px;
+}
+
+.task-modal-buttons button{
+  flex:1;
+  padding:12px;
+  border-radius:11px;
+  cursor:pointer;
+  font-weight:600;
+}
+
+.task-cancel{
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(255,255,255,.05);
+  color:#bbb;
+}
+
+.task-save{
+  border:0;
+  background:linear-gradient(135deg,#765cff,#9b7cff);
+  color:#fff;
+  box-shadow:0 8px 25px rgba(118,92,255,.25);
+}
+/* NEXORA Task Modal Fix */
+
+#taskEditModal .task-field select{
+  background:#171d31 !important;
+  color:#ffffff !important;
+  color-scheme:dark;
+}
+
+#taskEditModal .task-field select option{
+  background:#171d31 !important;
+  color:#ffffff !important;
+}
+
+#taskEditModal .task-modal-close{
+  color:#ffffff !important;
+  background:rgba(255,255,255,.08) !important;
+}
+
+#taskEditModal .task-cancel{
+  color:#ffffff !important;
+  background:rgba(255,255,255,.08) !important;
+}
+
+#taskEditModal .task-save{
+  color:#ffffff !important;
+  background:linear-gradient(135deg,#765cff,#9b7cff) !important;
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><div class="logo">N</div><span>NEXORA</span></div>
+    <div class="section-label">Workspace</div>
+    <nav class="nav" id="nav">
+      <button class="active" data-view="dashboard"><span class="ico">⌂</span>Dashboard</button>
+      <button data-view="tasks"><span class="ico">✓</span>Tasks</button>
+      <button data-view="notes"><span class="ico">▤</span>Notes</button>
+      <button data-view="focus"><span class="ico">◷</span>Focus Timer</button>
+      <button data-view="roadmap"><span class="ico">◎</span>Learning Path</button>
+      <button data-view="projects"><span class="ico">▦</span>Projects</button>
+      <button data-view="achievements"><span class="ico">♛</span>Achievements</button>
+    </nav>
+    <div class="section-label">Personal</div>
+    <nav class="nav">
+      <button data-view="stats"><span class="ico">⌁</span>My Stats</button>
+      <button id="openSettings"><span class="ico">⚙</span>Settings</button>
+    </nav>
+    <div class="sidebar-spacer"></div>
+    <div class="mini-goal">
+      <small>Weekly learning goal</small>
+      <div class="goal-num"><span id="sidebarHours">8.5</span> / 12h</div>
+      <div class="progress"><div class="bar" id="sideBar" style="width:71%"></div></div>
+      <footer><span>Consistency</span><b>71%</b></footer>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="icon-btn mobile-menu" id="menuBtn">☰</button>
+      <div class="crumb">Workspace / <b id="crumbTitle">Dashboard</b></div>
+      <div class="top-actions">
+        <input id="searchInput" class="search" placeholder="Search tasks, notes, projects..." />
+        <button class="icon-btn" title="Notifications" id="notifyBtn">♢</button>
+        <button class="avatar" id="avatarBtn" title="Profile">HA</button>
+      </div>
+  </header>
+
+  <div class="content">
+    <!-- DASHBOARD -->
+    <section class="view active" id="view-dashboard">
+      <div class="hero">
+        <div class="hero-card">
+          <div class="eyebrow"><i class="dot"></i> Editor workspace · Level 12</div>
+          <h1>BUILD. EDIT.<br><span style="color:#9774ff">CREATE.</span></h1>
+          <p>Your all-in-one command center for learning video editing. Track skills, stay consistent, finish projects and keep every idea in one place.</p>
+          <div class="cta-row">
+            <button class="btn primary" data-action="focus">▶ Start Focus</button>
+            <button class="btn ghost" id="quickTaskBtn">＋ Add Task</button>
+            <button class="btn ghost" id="quickNoteBtn">＋ New Note</button>
+          </div>
+        </div>
+        <div class="level-card panel">
+          <div class="level-top"><span>EDITOR PROFILE</span><span class="level-badge">LVL 12</span></div>
+          <div><div class="level-title">Motion Crafter</div><div class="level-sub">0 XP to next level</div></div>
+          <div><div class="xp"><span>XP PROGRESS</span><b>7,840 / 10,000</b></div><div class="progress"><div class="bar" style="width:78.4%"></div></div></div>
+        </div>
+      </div>
+
+      <div class="metrics">
+        <div class="metric"><small>FOCUS TIME</small><div class="metric-value">8h 26m</div><div class="metric-tag up">No focus sessions yet</div></div>
+        <div class="metric"><small>TASKS DONE</small><div class="metric-value">42</div><div class="metric-tag">No tasks completed yet</div></div>
+        <div class="metric"><small>PROJECTS</small><div class="metric-value">06</div><div class="metric-tag">No projects yet</div></div>
+        <div class="metric"><small>STREAK</small><div class="metric-value">14 <span style="font-size:18px">days</span></div><div class="metric-tag up">Start your streak today</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head"><div><h2>Skill Progress</h2><p>Level up the skills that matter for real projects.</p></div><button class="link" data-action="roadmap">View path →</button></div>
+          <div class="skill"><div class="skill-icon">🎬</div><div><div class="skill-name">Cutting & Storytelling</div><div class="skill-meta">0 / 50 lessons</div><div class="progress thin"><div class="bar" style="width:0%"></div></div></div><div class="skill-pct">0%</div></div>
+          <div class="skill"><div class="skill-icon">🎨</div><div><div class="skill-name">Color Grading</div><div class="skill-meta">0 / 40 lessons</div><div class="progress thin"><div class="bar" style="width:0%"></div></div></div><div class="skill-pct">0%</div></div>
+          <div class="skill"><div class="skill-icon">✨</div><div><div class="skill-name">Motion Graphics</div><div class="skill-meta">0 / 35 lessons</div><div class="progress thin"><div class="bar" style="width:0%"></div></div></div><div class="skill-pct">0%</div></div>
+          <div class="skill"><div class="skill-icon">🔊</div><div><div class="skill-name">Sound Design</div><div class="skill-meta">0 / 25 lessons</div><div class="progress thin"><div class="bar" style="width:0%"></div></div></div><div class="skill-pct">0%</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div><h2>Today</h2><p>Your small wins for today.</p></div><span class="pill purple">FRI · 11 SEP</span></div>
+          <div class="streak"><div class="flame">🔥</div><div><b>0 day streak</b><span>Keep it alive with one focused session.</span></div></div>
+          <div style="height:12px"></div>
+          <div id="todayTasks"></div>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="panel">
+          <div class="panel-head"><div><h2>Focus this week</h2><p>Hours spent learning & creating.</p></div><span class="pill green">0 / 12h</span></div>
+          <div class="chart"><div class="axis"></div><div class="bars" id="weekBars"></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div><h2>Recent Notes</h2><p>Ideas worth keeping.</p></div><button class="link" data-action="notes">All notes →</button></div>
+          <div id="recentNotes"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div><h2>Next milestone</h2><p>Complete one learning loop.</p></div><span class="pill">0%</span></div>
+          <div class="roadmap">
+            <div class="road-row"><div class="road-number">1</div><div><div class="road-title">Learn masking basics</div><div class="road-sub">30 min lesson</div></div><span class="road-status">DONE</span></div>
+            <div class="road-row"><div class="road-number">2</div><div><div class="road-title">Create a mask transition</div><div class="road-sub">Practice project</div></div><span class="road-status">NEXT</span></div>
+            <div class="road-row"><div class="road-number">3</div><div><div class="road-title">Add to portfolio</div><div class="road-sub">Upload final render</div></div><span class="road-status" style="color:#a5afc2;background:#11192c;border-color:var(--line)">LOCKED</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel project">
+        <div style="padding:20px 20px 0" class="panel-head"><div><h2>Recent Projects</h2><p>Your editing playground.</p></div><button class="btn ghost" style="padding:8px 11px" id="newProjectBtn">＋ New project</button></div>
+        <div class="metrics" style="padding:0 20px 20px;margin:0;grid-template-columns:repeat(3,1fr)" id="projectGrid"></div>
+      </div>
+    </section>
+
+    <!-- TASKS -->
+    <section class="view" id="view-tasks">
+      <div class="panel"><div class="panel-head"><div><h2>Tasks & Practice Queue</h2><p>Turn learning into small actions you can actually finish.</p></div><button class="btn primary" id="taskPageAdd">＋ Add task</button></div><div id="taskList"></div></div>
+    </section>
+
+    <!-- NOTES -->
+    <section class="view" id="view-notes">
+      <div class="panel"><div class="panel-head"><div><h2>Notes & Ideas</h2><p>Keep shortcuts, concepts, references and creative sparks.</p></div><button class="btn primary" id="notePageAdd">＋ New note</button></div><div id="notesList" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px"></div></div>
+    </section>
+
+    <!-- FOCUS -->
+    <section class="view" id="view-focus">
+      <div class="grid-2">
+        <div class="panel timer"><div class="eyebrow">DEEP WORK SESSION</div><div class="timer-ring" id="timerRing"><div class="time" id="timerText">25:00</div></div><div class="timer-mode" id="timerMode">Focus · 25 min</div><div class="timer-actions"><button class="round-btn" id="timerStart">Start</button><button class="round-btn" id="timerReset">Reset</button><button class="round-btn" id="timerShort">5 min</button></div></div>
+        <div class="panel"><div class="panel-head"><div><h2>Focus Queue</h2><p>Choose one thing before you start.</p></div></div><div id="focusQueue"></div><div style="height:10px"></div><div class="note"><div class="note-title"><span>Session rule</span><span class="pill purple">NO DISTRACTIONS</span></div><div class="note-body">Phone away. One timeline open. Finish the current micro-goal before switching.</div></div></div>
+      </div>
+    </section>
+
+    <!-- ROADMAP -->
+    <section class="view" id="view-roadmap">
+      <div class="grid-2"><div class="panel"><div class="panel-head"><div><h2>Editing Learning Path</h2><p>A practical route from fundamentals to portfolio-ready work.</p></div><span class="pill green">6 / 10 modules</span></div><div class="roadmap" id="roadmapList"></div></div><div class="panel"><div class="panel-head"><div><h2>Weekly Challenge</h2><p>Ship something small.</p></div><span class="pill purple">+300 XP</span></div><h2 style="font-size:25px;margin:22px 0 8px">30-second cinematic edit</h2><p style="color:#8590a9;line-height:1.65;font-size:13px">Use three cuts, one speed ramp, one sound hit and a simple color grade. The goal is rhythm, not perfection.</p><div class="progress"><div class="bar" style="width:64%"></div></div><div style="display:flex;justify-content:space-between;color:#73809b;font-size:11px"><span>64% complete</span><span>3 / 5 steps</span></div><button class="btn primary" style="margin-top:14px" id="challengeBtn">Continue challenge</button></div></div>
+    </section>
+
+    <!-- PROJECTS -->
+    <section class="view" id="view-projects"><div class="panel"><div class="panel-head"><div><h2>Project Vault</h2><p>Practice edits, client-style work and portfolio pieces.</p></div><button class="btn primary" id="projectPageAdd">＋ New project</button></div><div class="metrics" style="grid-template-columns:repeat(3,1fr)" id="allProjects"></div></div></section>
+
+    <!-- ACHIEVEMENTS -->
+    <section class="view" id="view-achievements">
+      <div class="panel">
+        <div class="panel-head">
+          <div><h2>Achievements</h2><p>Earn XP, build streaks and unlock badges as you learn.</p></div>
+          <span class="pill purple" id="achievementCount">0 unlocked</span>
+        </div>
+        <div class="achievement-summary">
+          <div class="achievement-stat"><small>BADGES UNLOCKED</small><b id="achievementUnlocked">0</b><span>Keep learning to unlock more</span></div>
+          <div class="achievement-stat"><small>TOTAL XP</small><b id="achievementXp">0</b><span id="achievementLevel">Level 1</span></div>
+          <div class="achievement-stat"><small>CURRENT STREAK</small><b id="achievementStreak">0 days</b><span>Focus regularly to build it</span></div>
+        </div>
+        <div class="achievement-grid" id="achievementGrid"></div>
+      </div>
+    </section>
+
+    <!-- STATS -->
+    <section class="view" id="view-stats"><div class="metrics"><div class="metric"><small>TOTAL FOCUS</small><div class="metric-value">86h 42m</div><div class="metric-tag">Since joining</div></div><div class="metric"><small>LESSONS</small><div class="metric-value">128</div><div class="metric-tag">+12 this month</div></div><div class="metric"><small>BEST STREAK</small><div class="metric-value">21</div><div class="metric-tag">days</div></div><div class="metric"><small>XP</small><div class="metric-value">7,840</div><div class="metric-tag">+960 this month</div></div></div><div class="grid-2"><div class="panel"><div class="panel-head"><div><h2>Activity</h2><p>Your last 7 learning days.</p></div></div><div class="chart"><div class="bars" id="statsBars"></div></div></div><div class="panel"><div class="panel-head"><div><h2>Skill Balance</h2><p>Where your learning time is going.</p></div></div><div id="skillBalance"></div></div></div></section>
+  </div>
+  </main>
+</div>
+
+<div class="modal" id="modal"><div class="modal-card"><div class="modal-head"><h3 id="modalTitle">Add task</h3><button class="close" id="modalClose">×</button></div><form id="modalForm"><div class="form-grid" id="modalFields"></div><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px"><button type="button" class="btn ghost" id="modalCancel">Cancel</button><button class="btn primary">Save</button></div></form></div></div>
+<div class="toast" id="toast">Saved</div>
+
+<script>
+(function(){
+  const $=s=>document.querySelector(s); const $$=s=>[...document.querySelectorAll(s)];
+  const API = location.protocol !== 'file:';
+  let token = localStorage.getItem('nx_token') || '';
+  let currentUser = null;
+  let serverMode = false;
+
+  const store={
+    tasks: JSON.parse(localStorage.getItem('nx_tasks')||'null') || [],
+    notes: JSON.parse(localStorage.getItem('nx_notes')||'null') || [],
+    projects: JSON.parse(localStorage.getItem('nx_projects')||'null') || [],
+    stats: {tasks:0,completedTasks:0,notes:0,projects:0,focusMinutes:0,projectProgress:0,level:1,xp:0,streak:0}
+  };
+  const save=()=>{localStorage.setItem('nx_tasks',JSON.stringify(store.tasks));localStorage.setItem('nx_notes',JSON.stringify(store.notes));localStorage.setItem('nx_projects',JSON.stringify(store.projects));};
+  const toast=(msg='Saved')=>{const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(window.__toast);window.__toast=setTimeout(()=>t.classList.remove('show'),1800)};
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+  async function api(path,opts={}){
+    if(!API||!token) throw new Error('not-authenticated');
+    const headers={'Content-Type':'application/json',...(opts.headers||{}),Authorization:`Bearer ${token}`};
+    const res=await fetch(path,{...opts,headers});
+    let data={}; try{data=await res.json()}catch{}
+    if(!res.ok){if(res.status===401){token='';localStorage.removeItem('nx_token');currentUser=null;setAuthState();}throw new Error(data.error||`Request failed (${res.status})`)}
+    return data;
+  }
+  function setAuthState(){
+    let state=$('#authState');
+    if(!state){state=document.createElement('div');state.id='authState';state.className='auth-state';$('.top-actions').insertBefore(state,$('#avatarBtn'));}
+    state.innerHTML=currentUser?`<strong>${esc(currentUser.name)}</strong> · Cloud sync`:'Demo mode · Tap HA to sign in';
+    $('#avatarBtn').textContent=currentUser?String(currentUser.name).slice(0,2).toUpperCase():'HA';
+    $('#avatarBtn').title=currentUser?'Account / Sign out':'Sign in / Create account';
+  }
+  function hydrate(data,user){
+    if(!data)return;
+    store.tasks=data.tasks||[]; store.notes=data.notes||[]; store.projects=data.projects||[]; store.stats=data.stats||store.stats; currentUser=user||currentUser; serverMode=!!currentUser; setAuthState();
+    renderAll();
+  }
+  async function bootstrap(){
+    setAuthState();
+    if(API && token){try{const d=await api('/api/auth/me');hydrate(d.data,d.user);toast('Cloud data loaded ✓')}catch{serverMode=false;renderAll();}}
+    else renderAll();
+  }
+  function renderTasks(target='#taskList'){
+  const el=$(target);
+  if(!el)return;
+
+  const list=store.tasks;
+
+  el.innerHTML=list.map(t=>`
+    <div class="task ${t.done?'done':''}" data-id="${esc(t.id)}">
+      <button class="check">${t.done?'✓':''}</button>
+
+      <div class="task-text">${esc(t.title)}</div>
+
+      <span class="pill purple">${esc(t.tag)}</span>
+
+      <span class="task-due">${esc(t.due)}</span>
+
+      <div class="task-actions">
+
+  <button class="task-action edit task-edit" title="Edit" aria-label="Edit task">
+    <svg viewBox="0 0 24 24">
+      <path d="M12 20h9"/>
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/>
+    </svg>
+  </button>
+
+  <button class="task-action delete task-delete" title="Delete" aria-label="Delete task">
+    <svg viewBox="0 0 24 24">
+      <path d="M3 6h18"/>
+      <path d="M8 6V4h8v2"/>
+      <path d="M19 6l-1 14H6L5 6"/>
+      <path d="M10 11v5"/>
+      <path d="M14 11v5"/>
+    </svg>
+  </button>
+
+</div>    </div>
+  `).join('') || `
+    <div class="empty">
+      No tasks yet. Add a small action to get moving.
+    </div>
+  `;
+
+  // Complete / reopen
+  $$('#taskList .task .check').forEach(b=>b.addEventListener('click',async()=>{
+    const id=b.parentElement.dataset.id;
+    const t=store.tasks.find(x=>String(x.id)===String(id));
+    if(!t)return;
+
+    t.done=!t.done;
+
+    try{
+      if(serverMode){
+        const updated=await api(
+          `/api/tasks/${encodeURIComponent(t.id)}`,
+          {
+            method:'PATCH',
+            body:JSON.stringify({done:t.done})
+          }
+        );
+        Object.assign(t,updated);
+      }
+    }catch(e){
+      t.done=!t.done;
+      toast(e.message);
+    }
+
+    save();
+    renderTasks();
+    renderToday();
+    renderQueue();
+    renderDashboardStats();
+    toast(t.done?'Task completed ✓':'Task reopened');
+  }));
+
+}
+
+
+async function updateTask(t,changes){
+  const old={...t};
+
+  Object.assign(t,changes);
+
+  try{
+    if(serverMode){
+      const updated=await api(
+        `/api/tasks/${encodeURIComponent(t.id)}`,
+        {
+          method:'PATCH',
+          body:JSON.stringify(changes)
+        }
+      );
+
+      Object.assign(t,updated);
+    }
+
+    save();
+    renderTasks();
+    renderToday();
+    renderQueue();
+    renderDashboardStats();
+
+    toast('Task updated ✓');
+  }catch(e){
+    Object.assign(t,old);
+    save();
+    renderTasks();
+    toast(e.message);
+  }
+}
+  function renderToday(){const el=$('#todayTasks'); if(!el)return; el.innerHTML=store.tasks.slice(0,3).map(t=>`<div class="task ${t.done?'done':''}" data-id="${esc(t.id)}"><button class="check">${t.done?'✓':''}</button><div class="task-text">${esc(t.title)}</div><span class="task-due">${esc(String(t.due).split('·')[0])}</span></div>`).join(''); $$('#todayTasks .check').forEach(b=>b.addEventListener('click',async()=>{const id=b.parentElement.dataset.id;const t=store.tasks.find(x=>String(x.id)===String(id));if(!t)return;t.done=!t.done;try{if(serverMode){const updated=await api(`/api/tasks/${encodeURIComponent(t.id)}`,{method:'PATCH',body:JSON.stringify({done:t.done})});Object.assign(t,updated)}}catch(e){t.done=!t.done;toast(e.message)}save();renderToday();renderTasks();renderQueue();renderDashboardStats();}));}
+  function noteTime(n){return n.createdAt?new Date(n.createdAt).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):n.time||'Just now'}
+  function renderNotes(){const el=$('#notesList');if(!el)return;el.innerHTML=store.notes.map(n=>`<article class="note"><div class="note-title"><span>${esc(n.title)}</span><button class="link del-note" data-id="${esc(n.id)}">Delete</button></div><div class="note-body">${esc(n.body)}</div><div class="note-time">${esc(noteTime(n))}</div></article>`).join('')||'<div class="empty">No notes yet.</div>'; $$('.del-note').forEach(b=>b.addEventListener('click',async()=>{const id=b.dataset.id;try{if(serverMode)await api(`/api/notes/${encodeURIComponent(id)}`,{method:'DELETE'});store.notes=store.notes.filter(n=>String(n.id)!==String(id));save();renderNotes();renderRecentNotes();renderDashboardStats();toast('Note deleted')}catch(e){toast(e.message)}}));}
+  function renderRecentNotes(){const el=$('#recentNotes');if(!el)return;el.innerHTML=store.notes.slice(0,2).map(n=>`<div class="note" style="margin-bottom:9px"><div class="note-title"><span>${esc(n.title)}</span><span class="pill">NOTE</span></div><div class="note-body">${esc(String(n.body).slice(0,100))}${String(n.body).length>100?'…':''}</div></div>`).join('');}
+  function projectCard(p){return `<div class="metric project-card"><div class="project-cover ${esc(p.cover||'')}"></div><div class="project-meta"><div class="project-title">${esc(p.title)}</div><div class="project-small">${esc(p.small||`${p.progress||0}% complete`)}</div><div class="project-foot"><span>Open project →</span><span>•••</span></div></div></div>`}
+  function renderProjects(){['#projectGrid','#allProjects'].forEach(sel=>{const el=$(sel);if(el)el.innerHTML=store.projects.map(projectCard).join('')||'<div class="empty">No projects yet. Start one.</div>';});}
+  function renderRoadmap(){const mods=['Editing fundamentals','Story & pacing','Advanced cutting','Color correction','Color grading','Sound design','Motion graphics','Speed ramps & effects','Client workflow','Portfolio & showreel'];const el=$('#roadmapList');if(!el)return;el.innerHTML=mods.map((m,i)=>`<div class="road-row"><div class="road-number">${String(i+1).padStart(2,'0')}</div><div><div class="road-title">${m}</div><div class="road-sub">${i<6?'Core module · 3–6 lessons':'Advanced module · 2–5 lessons'}</div></div><span class="road-status" style="${i<6?'':'color:#9ea7bc;background:#11192c;border-color:var(--line)'}">${i<6?'DONE':'LOCKED'}</span></div>`).join('');}
+  function renderAchievements(){
+    const completed=Number(store.stats.completedTasks||store.tasks.filter(t=>t.done).length||0);
+    const focus=Number(store.stats.focusMinutes||0);
+    const notes=Number(store.stats.notes||store.notes.length||0);
+    const projects=Number(store.stats.projects||store.projects.length||0);
+    const streak=Number(store.stats.streak||0);
+    const xp=Number(store.stats.xp||0);
+    const level=Number(store.stats.level||1);
+    const defs=[
+      {icon:'🎬',name:'First Cut',desc:'Complete your first task',value:completed,target:1,label:`${Math.min(completed,1)} / 1`},
+      {icon:'⚡',name:'Task Hunter',desc:'Complete 10 editing tasks',value:completed,target:10,label:`${Math.min(completed,10)} / 10`},
+      {icon:'⏱️',name:'Focus Rookie',desc:'Complete 1 hour of focused work',value:focus,target:60,label:`${Math.min(focus,60)} / 60 min`},
+      {icon:'🔥',name:'7 Day Streak',desc:'Reach a 7 day learning streak',value:streak,target:7,label:`${Math.min(streak,7)} / 7 days`},
+      {icon:'🧠',name:'Note Taker',desc:'Create 25 useful notes',value:notes,target:25,label:`${Math.min(notes,25)} / 25 notes`},
+      {icon:'🚀',name:'First Project',desc:'Create your first project',value:projects,target:1,label:`${Math.min(projects,1)} / 1`},
+      {icon:'💎',name:'Portfolio Builder',desc:'Create 10 projects',value:projects,target:10,label:`${Math.min(projects,10)} / 10`},
+      {icon:'🏆',name:'30 Day Legend',desc:'Reach a 30 day learning streak',value:streak,target:30,label:`${Math.min(streak,30)} / 30 days`},
+      {icon:'🌟',name:'XP Hunter',desc:'Earn your first 1,000 XP',value:xp,target:1000,label:`${Math.min(xp,1000).toLocaleString()} / 1,000 XP`},
+      {icon:'⏳',name:'Focus Master',desc:'Complete 10 hours of focused work',value:focus,target:600,label:`${Math.min(focus,600)} / 600 min`}
+    ];
+    const unlocked=defs.filter(a=>a.value>=a.target).length;
+    const el=$('#achievementGrid');
+    if(!el)return;
+    el.innerHTML=defs.map(a=>{const pct=Math.min(100,Math.round(a.value/a.target*100));const ok=a.value>=a.target;return `<div class="badge ${ok?'unlocked':'locked'}"><div class="badge-status">${ok?'UNLOCKED':'LOCKED'}</div><div class="badge-icon">${a.icon}</div><strong>${a.name}</strong><span>${a.desc}</span><div class="badge-progress"><div class="badge-progress-top"><span>${a.label}</span><b>${pct}%</b></div><div class="badge-progress-track"><div class="badge-progress-bar" style="width:${pct}%"></div></div></div></div>`}).join('');
+    const count=$('#achievementCount');if(count)count.textContent=`${unlocked} / ${defs.length} unlocked`;
+    const u=$('#achievementUnlocked');if(u)u.textContent=unlocked;
+    const ax=$('#achievementXp');if(ax)ax.textContent=xp.toLocaleString();
+    const al=$('#achievementLevel');if(al)al.textContent=`Level ${level}`;
+    const as=$('#achievementStreak');if(as)as.textContent=`${streak} day${streak===1?'':'s'}`;
+  }
+  function renderQueue(){const el=$('#focusQueue');if(!el)return;el.innerHTML=store.tasks.filter(t=>!t.done).slice(0,4).map(t=>`<div class="task"><span class="video-dot"></span><div class="task-text">${esc(t.title)}</div><span class="task-due">${esc(String(t.due).split('·').pop()?.trim()||'')||'25 min'}</span></div>`).join('')||'<div class="empty">Queue is clear. Nice work.</div>';}
+  function bars(target,values){const el=$(target);if(!el)return;const labels=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];el.innerHTML=values.map((v,i)=>`<div class="bar-col"><div class="bar-stick" style="height:${Math.max(14,v*20)}px" title="${v}h"></div><div class="bar-day">${labels[i]}</div></div>`).join('');}
+  function renderStats(){const focusH=(store.stats.focusMinutes||0)/60;bars('#weekBars',[1.1,1.8,.8,1.5,1.2,1.4,.7].map((v,i)=>i===6?Math.max(.3,focusH%3):v));bars('#statsBars',[1.8,1.1,1.4,2.1,.9,1.5,1.2]);const el=$('#skillBalance');if(!el)return;const done=store.stats.completedTasks||0;el.innerHTML=[['Cutting',Math.min(99,84+done)],['Color',58],['Motion',43],['Sound',72]].map(x=>`<div class="skill"><div class="skill-icon">${x[0]==='Cutting'?'🎬':x[0]==='Color'?'🎨':x[0]==='Motion'?'✨':'🔊'}</div><div><div class="skill-name">${x[0]}</div><div class="progress thin"><div class="bar" style="width:${x[1]}%"></div></div></div><div class="skill-pct">${x[1]}%</div></div>`).join('');
+    const m=$$('#view-stats .metric .metric-value');if(m.length>=4){m[0].textContent=`${Math.floor(focusH)}h ${Math.round((focusH%1)*60)}m`;m[1].textContent=store.stats.completedTasks||0;m[2].textContent=store.stats.streak||0;m[3].textContent=store.stats.xp||0;}}
+  function renderDashboardStats(){const vals=$$('#view-dashboard .metric .metric-value');if(vals.length>=4){vals[0].textContent=store.stats.tasks||store.tasks.length;vals[1].textContent=store.stats.completedTasks||0;vals[2].textContent=store.stats.notes||store.notes.length;vals[3].textContent=store.stats.projects||store.projects.length;} const badge=$('.level-badge');if(badge)badge.textContent=`LVL ${store.stats.level||1}`;const p=document.querySelector('.level-card .progress .bar');if(p)p.style.width=`${Math.min(99,(store.stats.xp||0)%250/2.5)}%`;const x=document.querySelector('.level-card .xp b');if(x)x.textContent=`${store.stats.xp||0} XP`}
+  function renderAll(){save();renderTasks();renderToday();renderNotes();renderRecentNotes();renderProjects();renderRoadmap();renderAchievements();renderQueue();renderStats();renderDashboardStats();timerRender();}
+
+  function go(view){$$('.view').forEach(v=>v.classList.remove('active'));const v=$('#view-'+view);if(v)v.classList.add('active');$$('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));$('#crumbTitle').textContent=view.replace(/-/g,' ').replace(/\b\w/g,m=>m.toUpperCase());$('#sidebar').classList.remove('open');window.scrollTo({top:0,behavior:'smooth'});}
+  $$('#nav button[data-view]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.view)));$$('[data-action]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.action)));
+  $('#menuBtn').addEventListener('click',()=>$('#sidebar').classList.toggle('open'));
+  $('#notifyBtn').addEventListener('click',()=>toast('You are all caught up ✓'));
+  $('#challengeBtn').addEventListener('click',()=>toast('Challenge continued — focus timer ready'));
+  $('#openSettings').addEventListener('click',()=>toast('Settings are connected to your backend account soon'));
+
+  let timerSeconds=1500,timerRunning=false,timerId=null,timerTargetMinutes=25;
+  function timerRender(){const m=Math.floor(timerSeconds/60),s=timerSeconds%60;$('#timerText').textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;const max=timerTargetMinutes*60;const p=Math.max(0,Math.min(100,timerSeconds/max*100));$('#timerRing').style.setProperty('--p',p+'%');$('#timerStart').textContent=timerRunning?'Pause':'Start';}
+  async function completeFocus(){const minutes=timerTargetMinutes;try{if(serverMode){const d=await api('/api/focus/sessions',{method:'POST',body:JSON.stringify({minutes})});store.stats=d.stats}else{store.stats.focusMinutes=(store.stats.focusMinutes||0)+minutes;}toast('Focus session complete 🎉');renderStats();renderDashboardStats();renderAchievements();}catch(e){toast(e.message)}}
+  $('#timerStart').addEventListener('click',()=>{timerRunning=!timerRunning;if(timerRunning){timerId=setInterval(async()=>{if(timerSeconds<=0){clearInterval(timerId);timerRunning=false;await completeFocus();timerSeconds=timerTargetMinutes*60;timerRender();return;}timerSeconds--;timerRender();},1000)}else clearInterval(timerId);timerRender();});
+  $('#timerReset').addEventListener('click',()=>{clearInterval(timerId);timerRunning=false;timerTargetMinutes=25;timerSeconds=1500;$('#timerMode').textContent='Focus · 25 min';timerRender();});
+  $('#timerShort').addEventListener('click',()=>{clearInterval(timerId);timerRunning=false;timerTargetMinutes=5;timerSeconds=300;$('#timerMode').textContent='Quick focus · 5 min';timerRender();});
+
+  const modal=$('#modal'), modalTitle=$('#modalTitle'), fields=$('#modalFields'); let modalType='task',authMode='login';
+  function openModal(type){modalType=type;modal.classList.add('show');if(type==='auth')return renderAuth();modalTitle.textContent=type==='task'?'Add a task':type==='note'?'New note':'New project';
+    if(type==='task')fields.innerHTML=`<div class="field full"><label>Task</label><input name="title" placeholder="e.g. Practice 3 speed ramps" required /></div><div class="field"><label>Type</label><select name="tag"><option>Practice</option><option>Lesson</option><option>Color</option><option>Motion</option><option>Sound</option></select></div><div class="field"><label>Due</label><input name="due" value="Today · 30 min" /></div>`;
+    if(type==='note')fields.innerHTML=`<div class="field full"><label>Title</label><input name="title" placeholder="A useful editing idea" required /></div><div class="field full"><label>Note</label><textarea name="body" placeholder="Write the shortcut, concept, workflow, or idea..."></textarea></div>`;
+    if(type==='project')fields.innerHTML=`<div class="field"><label>Project name</label><input name="title" placeholder="e.g. Travel montage" required /></div><div class="field"><label>Status</label><input name="small" value="Practice project · 0% complete" /></div><div class="field"><label>Cover mood</label><select name="cover"><option value="purple">Purple</option><option value="orange">Orange</option><option value="pink">Pink</option></select></div>`;
+    setTimeout(()=>fields.querySelector('input')?.focus(),50);
+  }
+  function renderAuth(){modalTitle.textContent=authMode==='login'?'Welcome back to NEXORA':'Create your NEXORA account';fields.innerHTML=`${authMode==='register'?'<div class="field full"><label>Name</label><input name="name" placeholder="Your name" required /></div>':''}<div class="field full"><label>Email</label><input type="email" name="email" placeholder="you@example.com" required /></div><div class="field full"><label>Password</label><input type="password" name="password" placeholder="At least 6 characters" minlength="6" required /></div><div class="field full"><div class="auth-hint">${authMode==='login'?'Your data will sync securely through the NEXORA backend.':'Your account gets its own tasks, notes, projects and focus history.'}</div><button type="button" class="auth-toggle" id="authToggle">${authMode==='login'?"Don't have an account? Create one":"Already have an account? Sign in"}</button></div>`;setTimeout(()=>fields.querySelector('input')?.focus(),50);$('#authToggle').onclick=()=>{authMode=authMode==='login'?'register':'login';renderAuth()};}
+  function closeModal(){modal.classList.remove('show')}
+  $('#modalClose').onclick=closeModal;$('#modalCancel').onclick=closeModal;modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});
+  $('#modalForm').addEventListener('submit',async e=>{
+    e.preventDefault();const data=Object.fromEntries(new FormData(e.target).entries());
+    try{
+      if(modalType==='auth'){
+        if(!API)return toast('Run NEXORA through npm start to use accounts');
+        const r=await fetch(`/api/auth/${authMode==='login'?'login':'register'}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});const d=await r.json();if(!r.ok)throw new Error(d.error||'Authentication failed');token=d.token;localStorage.setItem('nx_token',token);closeModal();try{hydrate(d.data,d.user)}catch(err){console.error(err);location.reload();return}toast(authMode==='login'?'Welcome back ✓':'Account created ✓');return;
+      }
+      if(modalType==='task'){
+        let item={id:'local-'+Date.now(),title:data.title,due:data.due||'Today',tag:data.tag||'Practice',done:false,createdAt:new Date().toISOString()};
+        if(serverMode)item=await api('/api/tasks',{method:'POST',body:JSON.stringify({title:data.title,due:data.due,tag:data.tag})});store.tasks.unshift(item);
+      }
+      if(modalType==='note'){
+        let item={id:'local-'+Date.now(),title:data.title,body:data.body||'',createdAt:new Date().toISOString()};
+        if(serverMode)item=await api('/api/notes',{method:'POST',body:JSON.stringify({title:data.title,body:data.body})});store.notes.unshift(item);
+      }
+      if(modalType==='project'){
+        let item={id:'local-'+Date.now(),title:data.title,small:data.small||'New project',cover:data.cover||'purple',progress:0};
+        if(serverMode)item=await api('/api/projects',{method:'POST',body:JSON.stringify({title:data.title,small:data.small,cover:data.cover,progress:0})});store.projects.unshift(item);
+      }
+      if(serverMode){const d=await api('/api/bootstrap');hydrate(d, currentUser)}else{save();renderAll()}closeModal();toast('Saved successfully ✓');
+    }catch(err){toast(err.message)}
+  });
+  $('#quickTaskBtn').onclick=()=>openModal('task');$('#taskPageAdd').onclick=()=>openModal('task');$('#quickNoteBtn').onclick=()=>openModal('note');$('#notePageAdd').onclick=()=>openModal('note');$('#newProjectBtn').onclick=()=>openModal('project');$('#projectPageAdd').onclick=()=>openModal('project');
+  $('#avatarBtn').onclick=async()=>{if(currentUser){if(confirm('Sign out of NEXORA?')){try{await api('/api/auth/logout',{method:'POST'})}catch{}token='';localStorage.removeItem('nx_token');currentUser=null;serverMode=false;setAuthState();toast('Signed out');}}else{authMode='login';openModal('auth')}};
+  $('#searchInput').addEventListener('input',e=>{const q=e.target.value.toLowerCase().trim();if(!q)return;const hits=[...store.tasks.map(t=>t.title),...store.notes.map(n=>n.title),...store.projects.map(p=>p.title)].filter(x=>String(x).toLowerCase().includes(q));toast(hits.length?`${hits.length} match${hits.length>1?'es':''} found`:'No matches found');});
+
+
+  // NEXORA Edit Task Controls — stable delegated handlers
+  document.addEventListener('click', async (e)=>{
+    const editBtn=e.target.closest('#taskList .task-edit');
+    const deleteBtn=e.target.closest('#taskList .task-delete');
+    const closeBtn=e.target.closest('#taskModalClose');
+    const cancelBtn=e.target.closest('#taskModalCancel');
+    const saveBtn=e.target.closest('#taskModalSave');
+    const editModal=document.getElementById('taskEditModal');
+
+    if(closeBtn || cancelBtn){ editModal?.classList.remove('show'); return; }
+    if(editModal && e.target===editModal){ editModal.classList.remove('show'); return; }
+
+    if(editBtn){
+      const taskEl=editBtn.closest('.task');
+      const t=store.tasks.find(x=>String(x.id)===String(taskEl?.dataset.id));
+      if(!t || !editModal)return;
+      $('#editTaskTitle').value=t.title||'';
+      $('#editTaskPriority').value=t.priority||'Medium';
+      $('#editTaskDue').value=t.due||'Today';
+      $('#editTaskTag').value=t.tag||'Practice';
+      editModal.dataset.taskId=t.id;
+      editModal.classList.add('show');
+      setTimeout(()=>$('#editTaskTitle')?.focus(),30);
+      return;
+    }
+
+    if(deleteBtn){
+      const taskEl=deleteBtn.closest('.task');
+      const id=taskEl?.dataset.id;
+      const t=store.tasks.find(x=>String(x.id)===String(id));
+      if(!t){toast('Task not found');return;}
+      if(!confirm(`Delete "${t.title}"?`))return;
+      try{
+        if(serverMode) await api(`/api/tasks/${encodeURIComponent(t.id)}`,{method:'DELETE'});
+        store.tasks=store.tasks.filter(x=>String(x.id)!==String(id));
+        save(); renderTasks(); renderToday(); renderQueue(); renderDashboardStats();
+        toast('Task deleted ✓');
+      }catch(err){ toast(err.message||'Unable to delete task'); }
+      return;
+    }
+
+    if(saveBtn){
+      if(!editModal)return;
+      const id=editModal.dataset.taskId;
+      const t=store.tasks.find(x=>String(x.id)===String(id));
+      if(!t){toast('Task not found');return;}
+      const title=$('#editTaskTitle')?.value.trim();
+      const priority=$('#editTaskPriority')?.value||'Medium';
+      const due=$('#editTaskDue')?.value.trim()||'Today';
+      const tag=$('#editTaskTag')?.value.trim()||'Practice';
+      if(!title){toast('Task title cannot be empty');return;}
+      const old={...t};
+      saveBtn.disabled=true; saveBtn.textContent='Saving...';
+      try{
+        if(serverMode){
+          const updated=await api(`/api/tasks/${encodeURIComponent(t.id)}`,{method:'PATCH',body:JSON.stringify({title,due,tag})});
+          Object.assign(t,updated);
+        }
+        Object.assign(t,{title,due,tag,priority});
+        save(); renderTasks(); renderToday(); renderQueue(); renderDashboardStats();
+        editModal.classList.remove('show');
+        toast('Task updated ✓');
+      }catch(err){
+        Object.assign(t,old); save(); renderTasks();
+        toast(err.message||'Unable to update task');
+      }finally{
+        saveBtn.disabled=false; saveBtn.textContent='Save Changes';
+      }
+    }
+  });
+
+  bootstrap();
+})();
+</script>
+<!-- Edit Task Modal -->
+<div class="task-modal" id="taskEditModal">
+  <div class="task-modal-box">
+
+    <div class="task-modal-head">
+      <h3>Edit Task</h3>
+      <button class="task-modal-close" id="taskModalClose">×</button>
+    </div>
+
+    <div class="task-field">
+      <label>Task title</label>
+      <input id="editTaskTitle" type="text" placeholder="Enter task title">
+    </div>
+
+    <div class="task-field">
+      <label>Priority</label>
+      <select id="editTaskPriority">
+        <option value="Low">Low</option>
+        <option value="Medium">Medium</option>
+        <option value="High">High</option>
+      </select>
+    </div>
+
+    <div class="task-field">
+      <label>Due</label>
+      <input id="editTaskDue" type="text" placeholder="Today">
+    </div>
+
+    <div class="task-field">
+      <label>Tag</label>
+      <input id="editTaskTag" type="text" placeholder="Practice">
+    </div>
+
+    <div class="task-modal-buttons">
+      <button class="task-cancel" id="taskModalCancel">Cancel</button>
+      <button class="task-save" id="taskModalSave">Save Changes</button>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>
+
