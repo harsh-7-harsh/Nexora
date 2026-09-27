@@ -214,7 +214,7 @@ async function auth(req, res, next) {
   try {
     const header = req.headers.authorization || '';
     const bearerToken = header.startsWith('Bearer ') ? header.slice(7) : null;
-    const token = bearerToken || getCookieToken(req);
+    const token = getCookieToken(req) || bearerToken;
 
     if (!token) {
       return res.status(401).json({ error: 'Authentication required' });
