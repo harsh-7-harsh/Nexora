@@ -1,8 +1,8 @@
 {
   "name": "nexora-editor-dashboard",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "NEXORA — full-stack editing learning dashboard",
+  "description": "NEXORA — full-stack video editing learning dashboard with PostgreSQL sync",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -12,8 +12,8 @@
     "node": ">=18"
   },
   "dependencies": {
-    "dotenv": "^17.4.2",
+    "dotenv": "^16.4.7",
     "express": "^5.1.0",
-    "pg": "^8.23.0"
+    "pg": "^8.16.3"
   }
 }
