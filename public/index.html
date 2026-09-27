@@ -561,6 +561,8 @@
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const API=location.protocol!=='file:';
 let token=localStorage.getItem('nx_token')||'';
+let cachedUser=null;
+try{cachedUser=JSON.parse(localStorage.getItem('nx_user')||'null')}catch{cachedUser=null}
 let currentUser=null;
 let serverMode=false;
 let searchPop=null, notifyPop=null;
@@ -580,7 +582,46 @@ function localStats(){const completedTasks=store.tasks.filter(t=>t.done).length;
 function setAuthState(){const a=$('#avatarBtn');if(a){a.textContent=currentUser?(currentUser.name||'NX').slice(0,2).toUpperCase():'HA';a.title=currentUser?'Account / Sign out':'Sign in / Create account'}const top=$('.top-actions');if(top){let s=$('#authState');if(!s){s=document.createElement('span');s.id='authState';s.className='auth-state';top.insertBefore(s,a)}s.innerHTML=currentUser?`<strong>${esc(currentUser.name)}</strong> · Cloud sync`:'Demo mode · Tap HA to sign in'}}
 function applySettings(){document.body.classList.toggle('compact-mode',!!store.settings.compactMode);const sg=$('#settingsSyncPill');if(sg)sg.textContent=serverMode?'Cloud sync':'Demo mode';const n=$('#notificationsToggle');if(n)n.checked=!!store.settings.notifications;const c=$('#compactToggle');if(c)c.checked=!!store.settings.compactMode;const g=$('#weeklyGoalInput');if(g)g.value=Number(store.settings.weeklyGoalMinutes||720);const nm=$('#settingsName');if(nm)nm.value=currentUser?.name||'';const em=$('#settingsEmail');if(em)em.textContent=currentUser?.email||'Not signed in'}
 function hydrate(d,u){if(!d)return;store.tasks=Array.isArray(d.tasks)?d.tasks:[];store.notes=Array.isArray(d.notes)?d.notes:[];store.projects=Array.isArray(d.projects)?d.projects:[];store.learning=Array.isArray(d.learning)?d.learning:[];store.settings={...store.settings,...(d.settings||{})};store.stats={...store.stats,...(d.stats||{})};currentUser=u||currentUser;serverMode=!!currentUser;store._focusMinutes=Number(store.stats.focusMinutes||0);saveLocal();setAuthState();applySettings();renderAll()}
-async function bootstrap(){setAuthState();if(API&&token){try{const d=await api('/api/auth/me');hydrate(d.data,d.user);await loadExtra();toast('Cloud data loaded ✓');return}catch{serverMode=false}}store.stats=localStats();renderAll()}
+async function bootstrap(){
+  if(cachedUser){
+    currentUser=cachedUser;
+    setAuthState();
+  }else{
+    setAuthState();
+  }
+
+  if(API&&token){
+    try{
+      const d=await api('/api/auth/me');
+      hydrate(d.data,d.user);
+      localStorage.setItem('nx_user',JSON.stringify(d.user));
+      await loadExtra();
+      toast('Cloud data loaded ✓');
+      return;
+    }catch(e){
+      // Keep the cached login visible while the session is being recovered.
+      // Do not delete the token automatically.
+      if(cachedUser){
+        currentUser=cachedUser;
+        serverMode=false;
+        setAuthState();
+        store.stats=localStats();
+        renderAll();
+        toast('Offline mode · Cloud reconnect pending');
+        return;
+      }
+    }
+  }
+
+  if(cachedUser){
+    currentUser=cachedUser;
+    serverMode=false;
+    setAuthState();
+  }
+
+  store.stats=localStats();
+  renderAll();
+}
 async function loadExtra(){if(!serverMode)return;try{const [w,h,n]=await Promise.all([api('/api/focus/weekly'),api('/api/focus/history'),api('/api/notifications')]);store.weekly=Array.isArray(w?.days)?w.days:[];store.focusHistory=Array.isArray(h)?h:[];store.notifications=Array.isArray(n)?n:[];renderAll()}catch{}}
 function go(view){$$('.view').forEach(v=>v.classList.remove('active'));const v=$('#view-'+view);if(v)v.classList.add('active');$$('#nav button[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));const c=$('#crumbTitle');if(c)c.textContent=view.replace(/-/g,' ').replace(/\b\w/g,m=>m.toUpperCase());$('#sidebar')?.classList.remove('open');window.scrollTo({top:0,behavior:'smooth'})}
 function freshModal(){const modal=$('#modal'),title=$('#modalTitle'),fields=$('#modalFields');if(!modal||!title||!fields)return null;modal.classList.add('show');return{modal,title,fields}}
@@ -592,7 +633,9 @@ if(type==='project')fields.innerHTML=`<div class="field full"><label>Project nam
 setTimeout(()=>fields.querySelector('input,textarea,select')?.focus(),20)}
 function closeModal(){$('#modal')?.classList.remove('show')}
 async function submitModal(e){e.preventDefault();const modal=$('#modal'),type=modal?.dataset.type,id=modal?.dataset.id||'';const data=Object.fromEntries(new FormData(e.currentTarget).entries());try{
-if(type==='auth'){const mode=modal.dataset.authMode||'login';if(!API)throw new Error('Run NEXORA through npm start to use accounts.');const r=await fetch(`/api/auth/${mode}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});const d=await r.json();if(!r.ok)throw new Error(d.error||'Authentication failed');token=d.token;localStorage.setItem('nx_token',token);hydrate(d.data,d.user);closeModal();await loadExtra();toast(mode==='login'?'Welcome back ✓':'Account created ✓');return}
+if(type==='auth'){const mode=modal.dataset.authMode||'login';if(!API)throw new Error('Run NEXORA through npm start to use accounts.');const r=await fetch(`/api/auth/${mode}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});const d=await r.json();if(!r.ok)throw new Error(d.error||'Authentication failed');token=d.token;localStorage.setItem('nx_token',token);
+                  localStorage.setItem('nx_user',JSON.stringify(d.user));
+                  hydrate(d.data,d.user);closeModal();await loadExtra();toast(mode==='login'?'Welcome back ✓':'Account created ✓');return}
 if(type==='task'){if(id){const payload={title:data.title,due:data.due,tag:data.tag,priority:data.priority};if(serverMode){const u=await api(`/api/tasks/${encodeURIComponent(id)}`,{method:'PATCH',body:JSON.stringify(payload)});const i=store.tasks.findIndex(x=>String(x.id)===String(id));if(i>=0)store.tasks[i]=u}else Object.assign(store.tasks.find(x=>String(x.id)===String(id))||{},payload)}else{const item=serverMode?await api('/api/tasks',{method:'POST',body:JSON.stringify({title:data.title,due:data.due,tag:data.tag,priority:data.priority})}):{id:'local-'+Date.now(),title:data.title,due:data.due,tag:data.tag,priority:data.priority,done:false,createdAt:new Date().toISOString()};store.tasks.unshift(item)}}
 if(type==='note'){const payload={title:data.title,body:data.body,category:data.category,tags:data.tags};if(id){if(serverMode){const u=await api(`/api/notes/${encodeURIComponent(id)}`,{method:'PATCH',body:JSON.stringify(payload)});const i=store.notes.findIndex(x=>String(x.id)===String(id));if(i>=0)store.notes[i]=u}else Object.assign(store.notes.find(x=>String(x.id)===String(id))||{},payload)}else{const item=serverMode?await api('/api/notes',{method:'POST',body:JSON.stringify(payload)}):{id:'local-'+Date.now(),...payload,createdAt:new Date().toISOString()};store.notes.unshift(item)}}
 if(type==='project'){const pr=Math.max(0,Math.min(100,Number(data.progress||0)));const payload={title:data.title,small:data.small,description:data.description,status:data.status,cover:data.cover,progress:pr};if(id){if(serverMode){const u=await api(`/api/projects/${encodeURIComponent(id)}`,{method:'PATCH',body:JSON.stringify(payload)});const i=store.projects.findIndex(x=>String(x.id)===String(id));if(i>=0)store.projects[i]=u}else Object.assign(store.projects.find(x=>String(x.id)===String(id))||{},payload)}else{const item=serverMode?await api('/api/projects',{method:'POST',body:JSON.stringify(payload)}):{id:'local-'+Date.now(),...payload,status:pr>=100?'complete':data.status,createdAt:new Date().toISOString()};store.projects.unshift(item)}}
