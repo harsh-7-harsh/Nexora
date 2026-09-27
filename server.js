@@ -225,7 +225,10 @@ async function getSettings(uid) {
 }
 
 async function streakData(uid) {
-  const q = await pool.query(`SELECT DISTINCT session_date::text AS date FROM focus_sessions WHERE user_id=$1 ORDER BY date DESC`, [uid]);
+  const q = await pool.query(
+  'SELECT session_date::text AS date FROM focus_sessions WHERE user_id=$1 GROUP BY session_date ORDER BY session_date DESC',
+  [uid]
+);
   const dates = q.rows.map(r => new Date(`${r.date}T00:00:00Z`));
   let current = 0;
   if (dates.length) {
