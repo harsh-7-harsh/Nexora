@@ -30,27 +30,6 @@ const now = () => new Date().toISOString();
 const cleanText = (value, fallback = '') => String(value ?? fallback).trim();
 const clamp = (v, min, max) => Math.max(min, Math.min(max, Number(v)));
 const priority = (v) => ['Low', 'Medium', 'High'].includes(String(v)) ? String(v) : 'Medium';
-const SESSION_COOKIE = 'nx_session';
-
-function setSessionCookie(res, token) {
-  res.setHeader(
-    'Set-Cookie',
-    `${SESSION_COOKIE}=${encodeURIComponent(token)}; Max-Age=2592000; Path=/; HttpOnly; Secure; SameSite=Lax`
-  );
-}
-
-function clearSessionCookie(res) {
-  res.setHeader(
-    'Set-Cookie',
-    `${SESSION_COOKIE}=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax`
-  );
-}
-
-function getCookieToken(req) {
-  const cookies = String(req.headers.cookie || '').split(';');
-  const item = cookies.find(x => x.trim().startsWith(`${SESSION_COOKIE}=`));
-  return item ? decodeURIComponent(item.trim().slice(SESSION_COOKIE.length + 1)) : null;
-}
 const status = (v) => ['planning', 'in-progress', 'complete', 'paused'].includes(String(v)) ? String(v) : 'in-progress';
 const progress = (v) => Number.isFinite(Number(v)) ? Math.round(clamp(v, 0, 100)) : 0;
 const dateKey = (d = new Date()) => new Date(d).toISOString().slice(0, 10);
@@ -213,40 +192,19 @@ async function initDb() {
 async function auth(req, res, next) {
   try {
     const header = req.headers.authorization || '';
-    const bearerToken = header.startsWith('Bearer ') ? header.slice(7) : null;
-    const token = getCookieToken(req) || bearerToken;
-
-    if (!token) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
+    const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+    if (!token) return res.status(401).json({ error: 'Authentication required' });
     const q = await pool.query(`
       SELECT s.token,s.expires_at,u.id,u.name,u.email,u.created_at,u.salt,u.password_hash
       FROM sessions s JOIN users u ON u.id=s.user_id
       WHERE s.token=$1 AND s.expires_at>NOW()
     `, [token]);
-
-    if (!q.rowCount) {
-      clearSessionCookie(res);
-      return res.status(401).json({ error: 'Session expired. Please log in again.' });
-    }
-
+    if (!q.rowCount) return res.status(401).json({ error: 'Session expired. Please log in again.' });
     const r = q.rows[0];
-
     req.token = token;
-    req.user = {
-      id: r.id,
-      name: r.name,
-      email: r.email,
-      createdAt: r.created_at,
-      salt: r.salt,
-      passwordHash: r.password_hash
-    };
-
+    req.user = { id: r.id, name: r.name, email: r.email, createdAt: r.created_at, salt: r.salt, passwordHash: r.password_hash };
     next();
-  } catch (e) {
-    next(e);
-  }
+  } catch (e) { next(e); }
 }
 
 async function getSettings(uid) {
@@ -392,7 +350,6 @@ app.post('/api/auth/register', async (req, res, next) => {
     await pool.query(`INSERT INTO user_settings(user_id,weekly_goal_minutes,notifications,compact_mode,challenge_week,challenge_step,challenge_completions) VALUES($1,720,TRUE,FALSE,$2,0,0)`, [u.id, weekKey()]);
     const token = id('sess');
     await pool.query(`INSERT INTO sessions(token,user_id,expires_at) VALUES($1,$2,NOW()+INTERVAL '30 days')`, [token, u.id]);
-    setSessionCookie(res, token);
     res.status(201).json({ token, user: cleanUser(u), data: await userData(u.id) });
   } catch (e) { next(e); }
 });
@@ -406,13 +363,12 @@ app.post('/api/auth/login', async (req, res, next) => {
     const token = id('sess');
     await pool.query('DELETE FROM sessions WHERE expires_at<=NOW()');
     await pool.query(`INSERT INTO sessions(token,user_id,expires_at) VALUES($1,$2,NOW()+INTERVAL '30 days')`, [token, u.id]);
-    setSessionCookie(res, token);
     res.json({ token, user: cleanUser(u), data: await userData(u.id) });
   } catch (e) { next(e); }
 });
 
 app.post('/api/auth/logout', auth, async (req, res, next) => {
-  try { await pool.query('DELETE FROM sessions WHERE token=$1', [req.token]); clearSessionCookie(res); res.json({ ok: true }); }
+  try { await pool.query('DELETE FROM sessions WHERE token=$1', [req.token]); res.json({ ok: true }); }
   catch (e) { next(e); }
 });
 
